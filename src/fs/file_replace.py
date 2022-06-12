@@ -11,7 +11,7 @@ lineList = [
 
 
 def replacePath(file):
-    return file.replace('\\', '/')
+    return file.replace("\\", "/")
 
 
 def delete_line(fileName, lineList):
@@ -19,7 +19,7 @@ def delete_line(fileName, lineList):
     for text in lineList:
         matchPatterns.append(re.compile(text))
     print(fileName, replacePath(fileName))
-    with open(replacePath(fileName), mode='r', encoding='utf-8') as f:
+    with open(replacePath(fileName), mode="r", encoding="utf-8") as f:
         while 1:
             line = f.readline()
             if not line:
@@ -31,7 +31,7 @@ def delete_line(fileName, lineList):
             else:
                 lineList.append(line)
 
-    with open(replacePath(fileName + ".log"), 'w', encoding='UTF-8') as f:
+    with open(replacePath(fileName + ".log"), "w", encoding="UTF-8") as f:
         for i in lineList:
             f.write(i)
         print("Write file over", fileName + ".log")

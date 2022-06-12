@@ -29,22 +29,3 @@ def _get_file_path(root_path, filenames, dirs):
         else:
             if filenames:
                 filenames.append(dir_file_path)
-
-
-def get_dirs(dir):
-    dirs = []
-    _get_file_path(dir, None, dirs)
-    return dirs
-
-
-def get_filenames(dir):
-    filenames = []
-    _get_file_path(dir, filenames, None)
-    return filenames
-
-
-def get_dirs_filenames(dir):
-    filenames = []
-    dirs = []
-    _get_file_path(dir, filenames, dirs)
-    return dirs, filenames

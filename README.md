@@ -27,3 +27,18 @@
 - 打印print信息加 --capture=no
 - 打印logging信息加  -o log_cli=true -o log_cli_level=DEBUG
 - 举例 `python3 -m pytest -o log_cli=true -o log_cli_level=DEBUG src/av/audio_opt_test.py::SilenceAudioSegmentTest`
+
+- module:sensitive_codec
+  - python3 -m src.sensitive.sensitive_codec --help
+  - python3 -m src.sensitive.sensitive_codec decode-file
+  - python3 -m src.sensitive.sensitive_codec encode-json
+  - python3 -m src.sensitive.sensitive_codec check-file
+- module:sensitive_replace
+  - python3 -m src.sensitive.sensitive_replace --help
+  - python3 -m src.sensitive.sensitive_replace replace-root --dir=testdata
+  - python3 -m src.sensitive.sensitive_replace replace-root --dir=testdata --enc=0
+  - python3 -m src.sensitive.sensitive_replace replace-root --dir=testdata --enc=1
+
+- package:fs
+  - python3 -m src.fs.dir_util
+  - python3 -m src.fs.file_replace

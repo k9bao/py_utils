@@ -1,86 +1,327 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from sys import version_info
 
 from base64 import b64encode, b64decode
 from binascii import hexlify, unhexlify
 
 
-__all__ = ['encrypt_ecb', 'decrypt_ecb',
-           'encrypt_cbc', 'decrypt_cbc',
-           'encrypt', 'decrypt']
+__all__ = [
+    "encrypt_ecb",
+    "decrypt_ecb",
+    "encrypt_cbc",
+    "decrypt_cbc",
+    "encrypt",
+    "decrypt",
+]
 
-if version_info[0] == 2:
-    # python2
-    PY2 = True
-    PY3 = False
-else:
-    # python3
-    PY2 = False
-    PY3 = True
+PY2 = False
+PY3 = True
+_range = range
+string_types = (str,)
+text_type = str
+binary_type = bytes
 
-if PY2:
-    _range = xrange
-    string_types = (basestring,)
-    text_type = unicode
-    binary_type = str
-else:
-    _range = range
-    string_types = (str,)
-    text_type = str
-    binary_type = bytes
-
-E_FMT = 'UTF8'
+E_FMT = "UTF8"
 
 # S盒
 S_BOX = {
-    0X00: 0XD6, 0X01: 0X90, 0X02: 0XE9, 0X03: 0XFE, 0X04: 0XCC, 0X05: 0XE1, 0X06: 0X3D, 0X07: 0XB7,
-    0X08: 0X16, 0X09: 0XB6, 0X0A: 0X14, 0X0B: 0XC2, 0X0C: 0X28, 0X0D: 0XFB, 0X0E: 0X2C, 0X0F: 0X05,
-    0X10: 0X2B, 0X11: 0X67, 0X12: 0X9A, 0X13: 0X76, 0X14: 0X2A, 0X15: 0XBE, 0X16: 0X04, 0X17: 0XC3,
-    0X18: 0XAA, 0X19: 0X44, 0X1A: 0X13, 0X1B: 0X26, 0X1C: 0X49, 0X1D: 0X86, 0X1E: 0X06, 0X1F: 0X99,
-    0X20: 0X9C, 0X21: 0X42, 0X22: 0X50, 0X23: 0XF4, 0X24: 0X91, 0X25: 0XEF, 0X26: 0X98, 0X27: 0X7A,
-    0X28: 0X33, 0X29: 0X54, 0X2A: 0X0B, 0X2B: 0X43, 0X2C: 0XED, 0X2D: 0XCF, 0X2E: 0XAC, 0X2F: 0X62,
-    0X30: 0XE4, 0X31: 0XB3, 0X32: 0X1C, 0X33: 0XA9, 0X34: 0XC9, 0X35: 0X08, 0X36: 0XE8, 0X37: 0X95,
-    0X38: 0X80, 0X39: 0XDF, 0X3A: 0X94, 0X3B: 0XFA, 0X3C: 0X75, 0X3D: 0X8F, 0X3E: 0X3F, 0X3F: 0XA6,
-    0X40: 0X47, 0X41: 0X07, 0X42: 0XA7, 0X43: 0XFC, 0X44: 0XF3, 0X45: 0X73, 0X46: 0X17, 0X47: 0XBA,
-    0X48: 0X83, 0X49: 0X59, 0X4A: 0X3C, 0X4B: 0X19, 0X4C: 0XE6, 0X4D: 0X85, 0X4E: 0X4F, 0X4F: 0XA8,
-    0X50: 0X68, 0X51: 0X6B, 0X52: 0X81, 0X53: 0XB2, 0X54: 0X71, 0X55: 0X64, 0X56: 0XDA, 0X57: 0X8B,
-    0X58: 0XF8, 0X59: 0XEB, 0X5A: 0X0F, 0X5B: 0X4B, 0X5C: 0X70, 0X5D: 0X56, 0X5E: 0X9D, 0X5F: 0X35,
-    0X60: 0X1E, 0X61: 0X24, 0X62: 0X0E, 0X63: 0X5E, 0X64: 0X63, 0X65: 0X58, 0X66: 0XD1, 0X67: 0XA2,
-    0X68: 0X25, 0X69: 0X22, 0X6A: 0X7C, 0X6B: 0X3B, 0X6C: 0X01, 0X6D: 0X21, 0X6E: 0X78, 0X6F: 0X87,
-    0X70: 0XD4, 0X71: 0X00, 0X72: 0X46, 0X73: 0X57, 0X74: 0X9F, 0X75: 0XD3, 0X76: 0X27, 0X77: 0X52,
-    0X78: 0X4C, 0X79: 0X36, 0X7A: 0X02, 0X7B: 0XE7, 0X7C: 0XA0, 0X7D: 0XC4, 0X7E: 0XC8, 0X7F: 0X9E,
-    0X80: 0XEA, 0X81: 0XBF, 0X82: 0X8A, 0X83: 0XD2, 0X84: 0X40, 0X85: 0XC7, 0X86: 0X38, 0X87: 0XB5,
-    0X88: 0XA3, 0X89: 0XF7, 0X8A: 0XF2, 0X8B: 0XCE, 0X8C: 0XF9, 0X8D: 0X61, 0X8E: 0X15, 0X8F: 0XA1,
-    0X90: 0XE0, 0X91: 0XAE, 0X92: 0X5D, 0X93: 0XA4, 0X94: 0X9B, 0X95: 0X34, 0X96: 0X1A, 0X97: 0X55,
-    0X98: 0XAD, 0X99: 0X93, 0X9A: 0X32, 0X9B: 0X30, 0X9C: 0XF5, 0X9D: 0X8C, 0X9E: 0XB1, 0X9F: 0XE3,
-    0XA0: 0X1D, 0XA1: 0XF6, 0XA2: 0XE2, 0XA3: 0X2E, 0XA4: 0X82, 0XA5: 0X66, 0XA6: 0XCA, 0XA7: 0X60,
-    0XA8: 0XC0, 0XA9: 0X29, 0XAA: 0X23, 0XAB: 0XAB, 0XAC: 0X0D, 0XAD: 0X53, 0XAE: 0X4E, 0XAF: 0X6F,
-    0XB0: 0XD5, 0XB1: 0XDB, 0XB2: 0X37, 0XB3: 0X45, 0XB4: 0XDE, 0XB5: 0XFD, 0XB6: 0X8E, 0XB7: 0X2F,
-    0XB8: 0X03, 0XB9: 0XFF, 0XBA: 0X6A, 0XBB: 0X72, 0XBC: 0X6D, 0XBD: 0X6C, 0XBE: 0X5B, 0XBF: 0X51,
-    0XC0: 0X8D, 0XC1: 0X1B, 0XC2: 0XAF, 0XC3: 0X92, 0XC4: 0XBB, 0XC5: 0XDD, 0XC6: 0XBC, 0XC7: 0X7F,
-    0XC8: 0X11, 0XC9: 0XD9, 0XCA: 0X5C, 0XCB: 0X41, 0XCC: 0X1F, 0XCD: 0X10, 0XCE: 0X5A, 0XCF: 0XD8,
-    0XD0: 0X0A, 0XD1: 0XC1, 0XD2: 0X31, 0XD3: 0X88, 0XD4: 0XA5, 0XD5: 0XCD, 0XD6: 0X7B, 0XD7: 0XBD,
-    0XD8: 0X2D, 0XD9: 0X74, 0XDA: 0XD0, 0XDB: 0X12, 0XDC: 0XB8, 0XDD: 0XE5, 0XDE: 0XB4, 0XDF: 0XB0,
-    0XE0: 0X89, 0XE1: 0X69, 0XE2: 0X97, 0XE3: 0X4A, 0XE4: 0X0C, 0XE5: 0X96, 0XE6: 0X77, 0XE7: 0X7E,
-    0XE8: 0X65, 0XE9: 0XB9, 0XEA: 0XF1, 0XEB: 0X09, 0XEC: 0XC5, 0XED: 0X6E, 0XEE: 0XC6, 0XEF: 0X84,
-    0XF0: 0X18, 0XF1: 0XF0, 0XF2: 0X7D, 0XF3: 0XEC, 0XF4: 0X3A, 0XF5: 0XDC, 0XF6: 0X4D, 0XF7: 0X20,
-    0XF8: 0X79, 0XF9: 0XEE, 0XFA: 0X5F, 0XFB: 0X3E, 0XFC: 0XD7, 0XFD: 0XCB, 0XFE: 0X39, 0XFF: 0X48
+    0x00: 0xD6,
+    0x01: 0x90,
+    0x02: 0xE9,
+    0x03: 0xFE,
+    0x04: 0xCC,
+    0x05: 0xE1,
+    0x06: 0x3D,
+    0x07: 0xB7,
+    0x08: 0x16,
+    0x09: 0xB6,
+    0x0A: 0x14,
+    0x0B: 0xC2,
+    0x0C: 0x28,
+    0x0D: 0xFB,
+    0x0E: 0x2C,
+    0x0F: 0x05,
+    0x10: 0x2B,
+    0x11: 0x67,
+    0x12: 0x9A,
+    0x13: 0x76,
+    0x14: 0x2A,
+    0x15: 0xBE,
+    0x16: 0x04,
+    0x17: 0xC3,
+    0x18: 0xAA,
+    0x19: 0x44,
+    0x1A: 0x13,
+    0x1B: 0x26,
+    0x1C: 0x49,
+    0x1D: 0x86,
+    0x1E: 0x06,
+    0x1F: 0x99,
+    0x20: 0x9C,
+    0x21: 0x42,
+    0x22: 0x50,
+    0x23: 0xF4,
+    0x24: 0x91,
+    0x25: 0xEF,
+    0x26: 0x98,
+    0x27: 0x7A,
+    0x28: 0x33,
+    0x29: 0x54,
+    0x2A: 0x0B,
+    0x2B: 0x43,
+    0x2C: 0xED,
+    0x2D: 0xCF,
+    0x2E: 0xAC,
+    0x2F: 0x62,
+    0x30: 0xE4,
+    0x31: 0xB3,
+    0x32: 0x1C,
+    0x33: 0xA9,
+    0x34: 0xC9,
+    0x35: 0x08,
+    0x36: 0xE8,
+    0x37: 0x95,
+    0x38: 0x80,
+    0x39: 0xDF,
+    0x3A: 0x94,
+    0x3B: 0xFA,
+    0x3C: 0x75,
+    0x3D: 0x8F,
+    0x3E: 0x3F,
+    0x3F: 0xA6,
+    0x40: 0x47,
+    0x41: 0x07,
+    0x42: 0xA7,
+    0x43: 0xFC,
+    0x44: 0xF3,
+    0x45: 0x73,
+    0x46: 0x17,
+    0x47: 0xBA,
+    0x48: 0x83,
+    0x49: 0x59,
+    0x4A: 0x3C,
+    0x4B: 0x19,
+    0x4C: 0xE6,
+    0x4D: 0x85,
+    0x4E: 0x4F,
+    0x4F: 0xA8,
+    0x50: 0x68,
+    0x51: 0x6B,
+    0x52: 0x81,
+    0x53: 0xB2,
+    0x54: 0x71,
+    0x55: 0x64,
+    0x56: 0xDA,
+    0x57: 0x8B,
+    0x58: 0xF8,
+    0x59: 0xEB,
+    0x5A: 0x0F,
+    0x5B: 0x4B,
+    0x5C: 0x70,
+    0x5D: 0x56,
+    0x5E: 0x9D,
+    0x5F: 0x35,
+    0x60: 0x1E,
+    0x61: 0x24,
+    0x62: 0x0E,
+    0x63: 0x5E,
+    0x64: 0x63,
+    0x65: 0x58,
+    0x66: 0xD1,
+    0x67: 0xA2,
+    0x68: 0x25,
+    0x69: 0x22,
+    0x6A: 0x7C,
+    0x6B: 0x3B,
+    0x6C: 0x01,
+    0x6D: 0x21,
+    0x6E: 0x78,
+    0x6F: 0x87,
+    0x70: 0xD4,
+    0x71: 0x00,
+    0x72: 0x46,
+    0x73: 0x57,
+    0x74: 0x9F,
+    0x75: 0xD3,
+    0x76: 0x27,
+    0x77: 0x52,
+    0x78: 0x4C,
+    0x79: 0x36,
+    0x7A: 0x02,
+    0x7B: 0xE7,
+    0x7C: 0xA0,
+    0x7D: 0xC4,
+    0x7E: 0xC8,
+    0x7F: 0x9E,
+    0x80: 0xEA,
+    0x81: 0xBF,
+    0x82: 0x8A,
+    0x83: 0xD2,
+    0x84: 0x40,
+    0x85: 0xC7,
+    0x86: 0x38,
+    0x87: 0xB5,
+    0x88: 0xA3,
+    0x89: 0xF7,
+    0x8A: 0xF2,
+    0x8B: 0xCE,
+    0x8C: 0xF9,
+    0x8D: 0x61,
+    0x8E: 0x15,
+    0x8F: 0xA1,
+    0x90: 0xE0,
+    0x91: 0xAE,
+    0x92: 0x5D,
+    0x93: 0xA4,
+    0x94: 0x9B,
+    0x95: 0x34,
+    0x96: 0x1A,
+    0x97: 0x55,
+    0x98: 0xAD,
+    0x99: 0x93,
+    0x9A: 0x32,
+    0x9B: 0x30,
+    0x9C: 0xF5,
+    0x9D: 0x8C,
+    0x9E: 0xB1,
+    0x9F: 0xE3,
+    0xA0: 0x1D,
+    0xA1: 0xF6,
+    0xA2: 0xE2,
+    0xA3: 0x2E,
+    0xA4: 0x82,
+    0xA5: 0x66,
+    0xA6: 0xCA,
+    0xA7: 0x60,
+    0xA8: 0xC0,
+    0xA9: 0x29,
+    0xAA: 0x23,
+    0xAB: 0xAB,
+    0xAC: 0x0D,
+    0xAD: 0x53,
+    0xAE: 0x4E,
+    0xAF: 0x6F,
+    0xB0: 0xD5,
+    0xB1: 0xDB,
+    0xB2: 0x37,
+    0xB3: 0x45,
+    0xB4: 0xDE,
+    0xB5: 0xFD,
+    0xB6: 0x8E,
+    0xB7: 0x2F,
+    0xB8: 0x03,
+    0xB9: 0xFF,
+    0xBA: 0x6A,
+    0xBB: 0x72,
+    0xBC: 0x6D,
+    0xBD: 0x6C,
+    0xBE: 0x5B,
+    0xBF: 0x51,
+    0xC0: 0x8D,
+    0xC1: 0x1B,
+    0xC2: 0xAF,
+    0xC3: 0x92,
+    0xC4: 0xBB,
+    0xC5: 0xDD,
+    0xC6: 0xBC,
+    0xC7: 0x7F,
+    0xC8: 0x11,
+    0xC9: 0xD9,
+    0xCA: 0x5C,
+    0xCB: 0x41,
+    0xCC: 0x1F,
+    0xCD: 0x10,
+    0xCE: 0x5A,
+    0xCF: 0xD8,
+    0xD0: 0x0A,
+    0xD1: 0xC1,
+    0xD2: 0x31,
+    0xD3: 0x88,
+    0xD4: 0xA5,
+    0xD5: 0xCD,
+    0xD6: 0x7B,
+    0xD7: 0xBD,
+    0xD8: 0x2D,
+    0xD9: 0x74,
+    0xDA: 0xD0,
+    0xDB: 0x12,
+    0xDC: 0xB8,
+    0xDD: 0xE5,
+    0xDE: 0xB4,
+    0xDF: 0xB0,
+    0xE0: 0x89,
+    0xE1: 0x69,
+    0xE2: 0x97,
+    0xE3: 0x4A,
+    0xE4: 0x0C,
+    0xE5: 0x96,
+    0xE6: 0x77,
+    0xE7: 0x7E,
+    0xE8: 0x65,
+    0xE9: 0xB9,
+    0xEA: 0xF1,
+    0xEB: 0x09,
+    0xEC: 0xC5,
+    0xED: 0x6E,
+    0xEE: 0xC6,
+    0xEF: 0x84,
+    0xF0: 0x18,
+    0xF1: 0xF0,
+    0xF2: 0x7D,
+    0xF3: 0xEC,
+    0xF4: 0x3A,
+    0xF5: 0xDC,
+    0xF6: 0x4D,
+    0xF7: 0x20,
+    0xF8: 0x79,
+    0xF9: 0xEE,
+    0xFA: 0x5F,
+    0xFB: 0x3E,
+    0xFC: 0xD7,
+    0xFD: 0xCB,
+    0xFE: 0x39,
+    0xFF: 0x48,
 }
 
 # 系统参数FK
-FK = (0XA3B1BAC6, 0X56AA3350, 0X677D9197, 0XB27022DC)
+FK = (0xA3B1BAC6, 0x56AA3350, 0x677D9197, 0xB27022DC)
 
 # 固定参数CK
-CK = (0X00070E15, 0X1C232A31, 0X383F464D, 0X545B6269,
-      0X70777E85, 0X8C939AA1, 0XA8AFB6BD, 0XC4CBD2D9,
-      0XE0E7EEF5, 0XFC030A11, 0X181F262D, 0X343B4249,
-      0X50575E65, 0X6C737A81, 0X888F969D, 0XA4ABB2B9,
-      0XC0C7CED5, 0XDCE3EAF1, 0XF8FF060D, 0X141B2229,
-      0X30373E45, 0X4C535A61, 0X686F767D, 0X848B9299,
-      0XA0A7AEB5, 0XBCC3CAD1, 0XD8DFE6ED, 0XF4FB0209,
-      0X10171E25, 0X2C333A41, 0X484F565D, 0X646B7279)
+CK = (
+    0x00070E15,
+    0x1C232A31,
+    0x383F464D,
+    0x545B6269,
+    0x70777E85,
+    0x8C939AA1,
+    0xA8AFB6BD,
+    0xC4CBD2D9,
+    0xE0E7EEF5,
+    0xFC030A11,
+    0x181F262D,
+    0x343B4249,
+    0x50575E65,
+    0x6C737A81,
+    0x888F969D,
+    0xA4ABB2B9,
+    0xC0C7CED5,
+    0xDCE3EAF1,
+    0xF8FF060D,
+    0x141B2229,
+    0x30373E45,
+    0x4C535A61,
+    0x686F767D,
+    0x848B9299,
+    0xA0A7AEB5,
+    0xBCC3CAD1,
+    0xD8DFE6ED,
+    0xF4FB0209,
+    0x10171E25,
+    0x2C333A41,
+    0x484F565D,
+    0x646B7279,
+)
 
 # 轮密钥缓存
 _rk_cache = {}
@@ -93,6 +334,7 @@ SM4_DECRYPT = 0
 BLOCK_BYTE = 16
 BLOCK_HEX = BLOCK_BYTE * 2
 
+
 def num2hex(num, width=1):
     """
     整数转为指定长度的十六进制字符串，不足补0
@@ -102,8 +344,8 @@ def num2hex(num, width=1):
     :param width: 16进制字符串长度， 默认为1
     :return str
     """
-    return '{:0>{width}}'.format(hex(num)[2:].replace('L', ''),
-                                 width=width)
+    return "{:0>{width}}".format(hex(num)[2:].replace("L", ""), width=width)
+
 
 def _byte_unpack(num, byte_n=4):
     # 分解后元组长度
@@ -112,28 +354,36 @@ def _byte_unpack(num, byte_n=4):
     step = (byte_n // _len) * 2
     hex_str = num2hex(num=num, width=byte_n * 2)
     split_v = list(_range(len(hex_str)))[::step] + [len(hex_str)]
-    return tuple([int(hex_str[s:e], base=16) for s, e in
-                  zip(split_v[:-1], split_v[1:])])
+    return tuple(
+        [int(hex_str[s:e], base=16) for s, e in zip(split_v[:-1], split_v[1:])]
+    )
+
 
 def _byte_pack(byte_array, byte_n=4):
     _len = 4
     # byte_array每一项16进制字符串的长度
     width = (byte_n // _len) * 2
     if len(byte_array) != _len:
-        raise ValueError('byte_array length must be 4.')
-    return int(''.join([num2hex(num=v, width=width)
-                        for v in byte_array]), 16)
+        raise ValueError("byte_array length must be 4.")
+    return int("".join([num2hex(num=v, width=width) for v in byte_array]), 16)
+
 
 def _s_box(byte):
     return S_BOX.get(byte)
+
 
 def _non_linear_map(byte_array):
     """
     非线性变换, 输入A=(a0, a1, a2, a3)
     (b0, b1, b2, b3) = (Sbox(a0), Sbox(a1), Sbox(a2), Sbox(a3))
     """
-    return (_s_box(byte_array[0]), _s_box(byte_array[1]),
-            _s_box(byte_array[2]), _s_box(byte_array[3]))
+    return (
+        _s_box(byte_array[0]),
+        _s_box(byte_array[1]),
+        _s_box(byte_array[2]),
+        _s_box(byte_array[3]),
+    )
+
 
 def _linear_map(byte4):
     """
@@ -141,7 +391,10 @@ def _linear_map(byte4):
     L(B) = B ⊕ (B <<< 2) ⊕ (B <<< 10) ⊕ (B <<< 18) ⊕ (B <<< 24)
     """
     _left = loop_left_shift
-    return byte4 ^ _left(byte4, 2) ^ _left(byte4, 10) ^ _left(byte4, 18) ^ _left(byte4, 24)
+    return (
+        byte4 ^ _left(byte4, 2) ^ _left(byte4, 10) ^ _left(byte4, 18) ^ _left(byte4, 24)
+    )
+
 
 def _linear_map_s(byte4):
     """
@@ -151,15 +404,17 @@ def _linear_map_s(byte4):
     _left = loop_left_shift
     return byte4 ^ _left(byte4, 13) ^ _left(byte4, 23)
 
+
 def loop_left_shift(num, offset, base=32):
     """
     循环向左移位
     >>> loop_left_shift(0b11010000, 3, base=8)
     >>> 0b10000110
     """
-    bin_str = '{:0>{width}}'.format(bin(num)[2:], width=base)
+    bin_str = "{:0>{width}}".format(bin(num)[2:], width=base)
     rem = offset % base
     return int(bin_str[rem:] + bin_str[:rem], 2)
+
 
 def _rep_t(byte4):
     """合成置换T, 由非线性变换和线性变换L复合而成"""
@@ -167,6 +422,7 @@ def _rep_t(byte4):
     b_array = _non_linear_map(_byte_unpack(byte4))
     # 线性变换L
     return _linear_map(_byte_pack(b_array))
+
 
 def _rep_t_s(byte4):
     """
@@ -176,6 +432,7 @@ def _rep_t_s(byte4):
     b_array = _non_linear_map(_byte_unpack(byte4))
     # 线性变换L'
     return _linear_map_s(_byte_pack(b_array))
+
 
 def _round_keys(mk):
     """
@@ -201,6 +458,7 @@ def _round_keys(mk):
         _rk_cache[mk] = _rk_keys
     return _rk_keys
 
+
 def _round_f(byte4_array, rk):
     """
     轮函数, F(X0, X1, X2, X3, rk) = X0 ⊕ T(X1 ⊕ X2 ⊕ X3 ⊕ rk)
@@ -209,6 +467,7 @@ def _round_f(byte4_array, rk):
     """
     x0, x1, x2, x3 = byte4_array
     return x0 ^ _rep_t(x1 ^ x2 ^ x3 ^ rk)
+
 
 def _crypt(num, mk, mode=SM4_ENCRYPT):
     """
@@ -222,8 +481,9 @@ def _crypt(num, mk, mode=SM4_ENCRYPT):
     if mode == SM4_DECRYPT:
         round_keys = round_keys[::-1]
     for i in _range(32):
-        x_keys.append(_round_f(x_keys[i:i+4], round_keys[i]))
+        x_keys.append(_round_f(x_keys[i : i + 4], round_keys[i]))
     return _byte_pack(x_keys[-4:][::-1], byte_n=16)
+
 
 def encrypt(clear_num, mk):
     """
@@ -236,6 +496,7 @@ def encrypt(clear_num, mk):
     :param mk: 密钥, 16byte
     """
     return _crypt(num=clear_num, mk=mk)
+
 
 def decrypt(cipher_num, mk):
     """
@@ -264,7 +525,7 @@ def _padding(text, mode=SM4_ENCRYPT):
     if mode == SM4_ENCRYPT:
         # 填充
         p_num = BLOCK_BYTE - (len(text) % BLOCK_BYTE)
-        space = '' if PY2 else b''
+        space = "" if PY2 else b""
         pad_s = (chr(p_num) * p_num) if PY2 else (chr(p_num).encode(E_FMT) * p_num)
         res = space.join([text, pad_s])
     else:
@@ -273,21 +534,26 @@ def _padding(text, mode=SM4_ENCRYPT):
         res = text[:-p_num]
     return res
 
+
 def _key_iv_check(key_iv):
     """
     密钥或初始化向量检测
     """
     # 密钥
     if key_iv is None or not isinstance(key_iv, string_types):
-        raise TypeError('Parameter key or iv:{} not a basestring'.format(key_iv))
+        raise TypeError("Parameter key or iv:{} not a basestring".format(key_iv))
 
     if isinstance(key_iv, text_type):
         key_iv = key_iv.encode(encoding=E_FMT)
 
     if len(key_iv) > BLOCK_BYTE:
-        raise ValueError('Parameter key or iv:{} byte greater than {}'.format(key_iv.decode(E_FMT),
-                                                                              BLOCK_BYTE))
+        raise ValueError(
+            "Parameter key or iv:{} byte greater than {}".format(
+                key_iv.decode(E_FMT), BLOCK_BYTE
+            )
+        )
     return key_iv
+
 
 def _hex(str_or_bytes):
     # PY2: _hex('北京') --> 'e58c97e4baac'
@@ -301,14 +567,16 @@ def _hex(str_or_bytes):
         elif isinstance(str_or_bytes, binary_type):
             byte = str_or_bytes
         else:
-            byte = b''
+            byte = b""
         hex_str = hexlify(byte)
     return hex_str
+
 
 def _unhex(hex_str):
     # PY2: _unhex('e58c97e4baac') --> '\xe5\x8c\x97\xe4\xba\xac'
     # PY3: _unhex('e58c97e4baac') --> b'\xe5\x8c\x97\xe4\xba\xac'
     return unhexlify(hex_str)
+
 
 # 电子密码本(ECB)
 def encrypt_ecb(plain_text, key):
@@ -327,13 +595,13 @@ def encrypt_ecb(plain_text, key):
     plain_hex = _hex(plain_text)
     cipher_hex_list = []
     for i in _range(len(plain_text) // BLOCK_BYTE):
-        sub_hex = plain_hex[i * BLOCK_HEX:(i + 1) * BLOCK_HEX]
-        cipher = encrypt(clear_num=int(sub_hex, 16),
-                         mk=int(_hex(key), 16))
+        sub_hex = plain_hex[i * BLOCK_HEX : (i + 1) * BLOCK_HEX]
+        cipher = encrypt(clear_num=int(sub_hex, 16), mk=int(_hex(key), 16))
         cipher_hex_list.append(num2hex(num=cipher, width=BLOCK_HEX))
 
-    cipher_text = b64encode(_unhex(''.join(cipher_hex_list)))
+    cipher_text = b64encode(_unhex("".join(cipher_hex_list)))
     return cipher_text if PY2 else cipher_text.decode(E_FMT)
+
 
 def decrypt_ecb(cipher_text, key):
     """
@@ -348,14 +616,13 @@ def decrypt_ecb(cipher_text, key):
     key = _key_iv_check(key_iv=key)
     plain_hex_list = []
     for i in _range(len(cipher_text) // BLOCK_BYTE):
-        sub_hex = cipher_hex[i * BLOCK_HEX:(i + 1) * BLOCK_HEX]
-        plain = decrypt(cipher_num=int(sub_hex, 16),
-                        mk=int(_hex(key), 16))
+        sub_hex = cipher_hex[i * BLOCK_HEX : (i + 1) * BLOCK_HEX]
+        plain = decrypt(cipher_num=int(sub_hex, 16), mk=int(_hex(key), 16))
         plain_hex_list.append(num2hex(num=plain, width=BLOCK_HEX))
 
-    plain_text = _padding(_unhex(''.join(plain_hex_list)),
-                          mode=SM4_DECRYPT)
+    plain_text = _padding(_unhex("".join(plain_hex_list)), mode=SM4_DECRYPT)
     return plain_text if PY2 else plain_text.decode(E_FMT)
+
 
 # 密码块链接(CBC)
 def encrypt_cbc(plain_text, key, iv):
@@ -377,14 +644,15 @@ def encrypt_cbc(plain_text, key, iv):
     plain_hex = _hex(plain_text)
     ivs = [int(_hex(iv), 16)]
     for i in _range(len(plain_text) // BLOCK_BYTE):
-        sub_hex = plain_hex[i * BLOCK_HEX:(i + 1) * BLOCK_HEX]
-        cipher = encrypt(clear_num=(int(sub_hex, 16) ^ ivs[i]),
-                         mk=int(_hex(key), 16))
+        sub_hex = plain_hex[i * BLOCK_HEX : (i + 1) * BLOCK_HEX]
+        cipher = encrypt(clear_num=(int(sub_hex, 16) ^ ivs[i]), mk=int(_hex(key), 16))
         ivs.append(cipher)
 
-    cipher_text = b64encode(_unhex(''.join([num2hex(num=c, width=BLOCK_HEX)
-                                            for c in ivs[1:]])))
+    cipher_text = b64encode(
+        _unhex("".join([num2hex(num=c, width=BLOCK_HEX) for c in ivs[1:]]))
+    )
     return cipher_text if PY2 else cipher_text.decode(E_FMT)
+
 
 def decrypt_cbc(cipher_text, key, iv):
     """
@@ -403,24 +671,23 @@ def decrypt_cbc(cipher_text, key, iv):
     ivs = [int(_hex(iv), 16)]
     plain_hex_list = []
     for i in _range(len(cipher_text) // BLOCK_BYTE):
-        sub_hex = cipher_hex[i * BLOCK_HEX:(i + 1) * BLOCK_HEX]
+        sub_hex = cipher_hex[i * BLOCK_HEX : (i + 1) * BLOCK_HEX]
         cipher = int(sub_hex, 16)
-        plain = (ivs[i] ^ decrypt(cipher_num=cipher,
-                                  mk=int(_hex(key), 16)))
+        plain = ivs[i] ^ decrypt(cipher_num=cipher, mk=int(_hex(key), 16))
         ivs.append(cipher)
         plain_hex_list.append(num2hex(num=plain, width=BLOCK_HEX))
 
-    plain_text = _padding(_unhex(''.join(plain_hex_list)),
-                          mode=SM4_DECRYPT)
+    plain_text = _padding(_unhex("".join(plain_hex_list)), mode=SM4_DECRYPT)
     return plain_text if PY2 else plain_text.decode(E_FMT)
 
-if __name__ == '__main__':
-    key='12345678'
-    s=['test1','test2']
+
+if __name__ == "__main__":
+    key = "12345678"
+    s = ["test1", "test2"]
     for i in s:
-        e = encrypt_ecb(i,key)
-        d = decrypt_ecb(e,key)
-        print(len(key),key,i,e,d)
+        e = encrypt_ecb(i, key)
+        d = decrypt_ecb(e, key)
+        print(len(key), key, i, e, d)
 
 # 8 12345678 test1 my7uGvK9o27Ph889JsUaEw== test1
 # 8 12345678 test2 NKpbg9jj0qRqL1UC29RNpA== test2
