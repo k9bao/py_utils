@@ -2,7 +2,7 @@ import os
 import unittest
 import logging
 
-from src.fs.file import get_file_size
+from src.fs.file import get_file_size, get_dirs, get_filenames, get_dirs_filenames
 
 
 class FileTest(unittest.TestCase):
@@ -15,6 +15,14 @@ class FileTest(unittest.TestCase):
         handler.close()
         self.assertEqual(size1, size2)
         logging.debug(f"{size1}, {size2}")
+
+    def test_get_dirs(self):
+        dirs = get_dirs("./")
+        filenames = get_filenames(".")
+        dirs1, filenames1 = get_dirs_filenames(".")
+        self.assertEqual(dirs, dirs1)
+        self.assertEqual(filenames, filenames1)
+        logging.debug(f"{dirs}, {dirs1}, {filenames}, {filenames1}")
 
 
 if __name__ == "__main__":
