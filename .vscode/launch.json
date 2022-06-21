@@ -19,10 +19,10 @@
             "justMyCode": true
         },
         {
-            "name": "av.audio_opt_test",
+            "name": "av",
             "type": "python",
             "request": "launch",
-            "module": "src.av.audio_opt_test"
+            "module": "src.av.probe_test"
         }
     ]
 }

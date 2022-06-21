@@ -1,6 +1,6 @@
-import logging
 import subprocess
 import json
+import re
 
 from .av_common import audio_ext_map
 
@@ -35,6 +35,7 @@ class AVProp:
     def get_probe(self):
         if not self._probe:
             self._probe = probe(self.url)
+        return self._probe
 
     @property
     def vpx_alpha(self):
@@ -43,43 +44,35 @@ class AVProp:
             result = False
             if "streams" in self._probe:
                 for s in self._probe["streams"]:
-                    if s["codec_type"] == "video" and (
-                        s["codec_name"] == "vp8" or s["codec_name"] == "vp9"
-                    ):
+                    if s["codec_type"] == "video" and (s["codec_name"] == "vp8" or s["codec_name"] == "vp9"):
                         tags = s.get("tags", {})
-                        if (
-                            tags.get("alpha_mode") == "1"
-                            or tags.get("ALPHA_MODE") == "1"
-                        ):
+                        if tags.get("alpha_mode") == "1" or tags.get("ALPHA_MODE") == "1":
                             result = True
                             break
             setattr(self, "_vpx_alpha", result)
-        logging.debug(f"self._vpx_alpha {self.url}, {self._vpx_alpha}")
         return self._vpx_alpha
 
     @property
     def audio_ext(self):
         if not hasattr(self, "_audio_ext"):
+            result = ""
             self.get_probe()
-            result = ".m4a"
             streams = self._probe.get("streams") or []
             for s in streams:
                 if s["codec_type"] == "audio":
                     result = "." + (audio_ext_map.get(s["codec_name"]) or "mp4")
                     break
             setattr(self, "_audio_ext", result)
-        logging.debug(f"self._audio_ext {self.url}, {self._audio_ext}")
         return self._audio_ext
 
     @property
-    def video_ext(self):
+    def get_video_ext_default(self):
         if not hasattr(self, "_video_ext"):
             self.get_probe()
             if self.vpx_alpha:
                 setattr(self, "_video_ext", ".webm")
             else:
                 setattr(self, "_video_ext", ".mp4")
-        logging.debug(f"self._video_ext {self.url}, {self._video_ext}")
         return self._video_ext
 
     def video_code(self):
@@ -97,8 +90,8 @@ class AVProp:
                 return float(self._probe["format"]["duration"])
         return 0.0
 
+    # 0:音视频都没有, 1:只有视频(图片), 2:只有音频, 3:音视频都有
     def get_stream_type(self):
-        # 0:音视频都没有, 1:只有视频, 2:只有音频, 3:音视频都有
         self.get_probe()
         stream_type = 0
         if "streams" in self._probe:
@@ -110,16 +103,30 @@ class AVProp:
         return stream_type
 
     def get_create_time(self):
-        if not hasattr(self, "_creation_time"):
+        if not hasattr(self, "_get_create_time"):
             self.get_probe()
-            if (
-                "format" not in self._probe
-                or "tags" not in self._probe["format"]
-                or "creation_time" not in self._probe["format"]["tags"]
-            ):
-                return ""
-            setattr(
-                self, "_creation_time", self._probe["format"]["tags"]["creation_time"]
-            )
-        logging.debug(f"self._creation_time {self.url}, {self._creation_time}")
-        return self._creation_time
+            result = None
+            if "format" in self._probe:
+                format = self._probe["format"]
+                tags = format.get("tags", {})
+                if tags.get("creation_time"):
+                    result = tags["creation_time"]
+            if result is None and "streams" in self._probe:
+                for s in self._probe["streams"]:
+                    tags = s.get("tags", {})
+                    if tags.get("creation_time"):
+                        result = tags.get("creation_time")
+                        break
+
+            setattr(self, "_get_create_time", result)
+        return self._get_create_time
+
+    # return format: 20180908_035042
+    def get_create_time_format(self):
+        result = "00000000_000000"
+        create_time = self.get_create_time()
+        if create_time:  # 2018-09-08T03:50:42.000000Z
+            ll = re.split(r"[,.]", create_time)
+            if len(ll) > 0:
+                result = ll[0].replace("-", "").replace("T", "_").replace(":", "")  # 20180908_035042
+        return result
