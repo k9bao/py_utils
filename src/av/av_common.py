@@ -31,6 +31,7 @@ pic_ext = {
     ".raw",
     ".wmf",
     ".webp",
+    ".heic",
 }
 
 video_ext = {
