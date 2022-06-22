@@ -15,14 +15,14 @@
             "name": "fs.dir_test",
             "type": "python",
             "request": "launch",
-            "module": "src.fs.dir_test",
+            "module": "py_utils.src.fs.dir_test",
             "justMyCode": true
         },
         {
             "name": "av",
             "type": "python",
             "request": "launch",
-            "module": "src.av.probe_test"
+            "module": "py_utils.src.av.probe_test"
         }
     ]
 }

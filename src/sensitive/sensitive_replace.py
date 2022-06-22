@@ -2,7 +2,7 @@ import click
 import os
 
 from .sensitive_codec import read_json
-from src.fs import dir_util
+from py_utils.src.fs import dir_util
 
 json_filename = "sensitive-text.json"
 
@@ -10,9 +10,7 @@ json_filename = "sensitive-text.json"
 def process_replace(file, data, enc):
     change = False
     sortKeys = sorted(data)
-    with open(file, "r", encoding="utf-8") as f1, open(
-        "%s.bak" % file, "w", encoding="utf-8"
-    ) as f2:
+    with open(file, "r", encoding="utf-8") as f1, open("%s.bak" % file, "w", encoding="utf-8") as f2:
         for line in f1:
             for key in sortKeys:
                 if enc:

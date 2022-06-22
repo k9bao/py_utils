@@ -1,7 +1,7 @@
 import unittest
 import logging
 
-from src.cmd_util.cmd_utils import run_sys_command
+from py_utils.src.cmd_util.cmd_utils import run_sys_command
 
 
 class CmdTest(unittest.TestCase):

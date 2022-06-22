@@ -1,7 +1,7 @@
 import logging
 
-from src.av.audio_opt import SilenceAudioSegment
-from src.av.probe import AVProp
+from py_utils.src.av.audio_opt import SilenceAudioSegment
+from py_utils.src.av.probe import AVProp
 
 logging.basicConfig(
     format="%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s", level=logging.DEBUG

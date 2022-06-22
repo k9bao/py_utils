@@ -1,7 +1,7 @@
 import unittest
 import logging
 
-from src.av.probe import AVProp
+from py_utils.src.av.probe import AVProp
 
 
 class FileTest(unittest.TestCase):
@@ -48,6 +48,6 @@ class FileTest(unittest.TestCase):
         # self.assertTrue(prop.get_create_time_format() == "20100209_015539")
 
 
-# python3 -m pytest -o log_cli=true -o log_cli_level=DEBUG src/av/probe_test.py
+# python3 -m pytest -o log_cli=true -o log_cli_level=DEBUG py_utils/src/av/probe_test.py
 if __name__ == "__main__":
     unittest.main()

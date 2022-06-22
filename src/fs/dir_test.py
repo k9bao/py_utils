@@ -1,7 +1,7 @@
 import unittest
 import logging
 
-from src.fs.dir import (
+from py_utils.src.fs.dir import (
     get_ext,
     filter_str,
     list_all_files,

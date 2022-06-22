@@ -1,7 +1,7 @@
 import json
 import click
 import os
-from src.codec import codec_my
+from py_utils.src.codec import codec_my
 
 """
 1. sensitive_word.json文件是加密文件，解密后是一个json文件
@@ -91,9 +91,7 @@ def decode_file(file):
         except json.JSONDecodeError:
             print("start decode.")
 
-    with open(file, "r", encoding="utf-8") as f1, open(
-        "%s.bak" % file, "w", encoding="utf-8"
-    ) as f2:
+    with open(file, "r", encoding="utf-8") as f1, open("%s.bak" % file, "w", encoding="utf-8") as f2:
         text = f1.read()
         text = dec(text)
         f2.write(text)

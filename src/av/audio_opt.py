@@ -4,7 +4,7 @@ import logging
 
 from pydub import AudioSegment
 
-from src.cmd_util.cmd_utils import run_sys_command
+from py_utils.src.cmd_util.cmd_utils import run_sys_command
 
 
 FFMPEG_BIN = "ffmpeg"

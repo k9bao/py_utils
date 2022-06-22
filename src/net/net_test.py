@@ -1,7 +1,7 @@
 import unittest
 import logging
 
-from src.net.net import host_ip
+from py_utils.src.net.net import host_ip
 
 
 class FileTest(unittest.TestCase):

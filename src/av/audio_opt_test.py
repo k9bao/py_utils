@@ -3,8 +3,8 @@ import logging
 import os.path
 import os
 
-from src.av.audio_opt import AudioProcessor, SilenceAudioSegment
-from src.av.probe import AVProp
+from .audio_opt import AudioProcessor, SilenceAudioSegment
+from .probe import AVProp
 
 
 class SilenceAudioSegmentTest(unittest.TestCase):
@@ -48,5 +48,6 @@ class AudioProcessorTest(unittest.TestCase):
         os.remove(mp3_file_path)
 
 
+# python3 -m pytest -o log_cli=true -o log_cli_level=DEBUG py_utils/src/av/audio_opt_test.py
 if __name__ == "__main__":
     unittest.main()

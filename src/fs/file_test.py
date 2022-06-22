@@ -2,7 +2,7 @@ import os
 import unittest
 import logging
 
-from src.fs.file import get_file_size
+from py_utils.src.fs.file import get_file_size
 
 
 class FileTest(unittest.TestCase):

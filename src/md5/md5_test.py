@@ -2,7 +2,7 @@ import unittest
 import os.path
 import logging
 
-from src.md5.md5 import get_fmd5, get_fsha1
+from py_utils.src.md5.md5 import get_fmd5, get_fsha1
 
 test_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "testdata")
 
