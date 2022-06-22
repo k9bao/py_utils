@@ -1,4 +1,4 @@
-audio_ext_map = {
+audio_code_ext_map = {
     "mp3": "mp3",
     "vorbis": "ogg",
     "opus": "opus",
@@ -6,6 +6,31 @@ audio_ext_map = {
     "wmav2": "wma",
     "wmav1": "wma",
     "pcm_s16le": "wav",
+}
+
+
+pic_ext = {
+    ".bmp",
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".tif",
+    ".gif",
+    ".pcx",
+    ".tga",
+    ".exif",
+    ".fpx",
+    ".svg",
+    ".psd",
+    ".cdr",
+    ".pcd",
+    ".dxf",
+    ".ufo",
+    ".eps",
+    ".ai",
+    ".raw",
+    ".wmf",
+    ".webp",
 }
 
 video_ext = {
@@ -27,4 +52,6 @@ video_ext = {
     ".webm",
     ".wmv",
     ".wvx",
+    ".ifo",
+    ".ram",
 }

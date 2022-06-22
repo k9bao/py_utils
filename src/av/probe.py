@@ -2,7 +2,7 @@ import subprocess
 import json
 import re
 
-from .av_common import audio_ext_map
+from .av_common import audio_code_ext_map
 
 FFPROBE_BIN = "ffprobe"
 
@@ -60,7 +60,7 @@ class AVProp:
             streams = self._probe.get("streams") or []
             for s in streams:
                 if s["codec_type"] == "audio":
-                    result = "." + (audio_ext_map.get(s["codec_name"]) or "mp4")
+                    result = "." + (audio_code_ext_map.get(s["codec_name"]) or "mp4")
                     break
             setattr(self, "_audio_ext", result)
         return self._audio_ext

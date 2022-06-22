@@ -1,14 +1,8 @@
 import os
+import logging
 
 
-def get_ext(file):
-    """
-    返回文件后缀
-    如果文件名只包含后缀，比如.gitignore,gradlew，它的后缀是空''
-    """
-    return os.path.splitext(file)[-1]
-
-
+# 检测 text 包含关系
 def filter_str(text, in_filter, out_filter):
     """
     text 在 out_filter,返回 False
@@ -32,7 +26,21 @@ def filter_str(text, in_filter, out_filter):
         return True
 
 
-def list_all_files(rootdir, ext=None, non_ext=None):
+# 存放归档文件的所有目录，包含各级子目录(绝对路径)
+def get_all_dirs(root_dir):
+    if not os.path.isdir(root_dir):
+        return []
+    _dirs = [root_dir]
+    names = os.listdir(root_dir)
+    for i in range(0, len(names)):
+        name = os.path.join(root_dir, names[i])
+        if os.path.isdir(name):
+            _dirs.extend(get_all_dirs(name))
+    return _dirs
+
+
+# 获取目录下所有文件(绝对路径)
+def get_all_files(root_dir, ext=None, non_ext=None):
     """
     功能：获取目录下的所有文件
     输入：
@@ -43,38 +51,39 @@ def list_all_files(rootdir, ext=None, non_ext=None):
         文件绝对路径列表
     """
     _files = []
-    list = os.listdir(rootdir)
+    list = os.listdir(root_dir)
     for i in range(0, len(list)):
-        path = os.path.join(rootdir, list[i])
+        path = os.path.join(root_dir, list[i])
         if os.path.isdir(path):
-            _files.extend(list_all_files(path, ext, non_ext))
+            _files.extend(get_all_files(path, ext, non_ext))
         if os.path.isfile(path):
             if filter_str(os.path.splitext(path)[-1], ext, non_ext):
                 _files.append(path)
     return _files
 
 
-def list_all_dirs(rootdir):
+# 获取目录下所有子目录及文件(绝对路径)
+def get_all_dirs_and_files(root_dir):
     """
-    功能：获取目录下的所有文件
+    功能：获取目录下的所有目录及文件
     输入：
         rootdir 目录，
-        not_ext 排除指定后缀[.json,.txt],优先级高于ext,必须是列表或元祖
-        ext     过滤指定后缀，为空不过滤比如[.png,.jpg],只返回.png和.jpg后缀,必须是列表或元祖
     输出：
         文件绝对路径列表
     """
-    _dirs = []
-    list = os.listdir(rootdir)
+    _dirs = [root_dir]
+    list = os.listdir(root_dir)
     for i in range(0, len(list)):
-        path = os.path.join(rootdir, list[i])
-        if os.path.isdir(path):
-            _dirs.append(path)
-            _dirs.extend(list_all_files(path))
+        name = os.path.join(root_dir, list[i])
+        if os.path.isdir(name):
+            _dirs.extend(get_all_dirs_and_files(name))
+        elif os.path.isfile(name):
+            _dirs.append(name)
     return _dirs
 
 
-def list_all_ext(rootdir):
+# 获取目录下所有后缀
+def get_all_ext(rootdir):
     """
     功能：获取目录下的所有文件夹
     输入：
@@ -87,36 +96,37 @@ def list_all_ext(rootdir):
     for i in range(0, len(list)):
         path = os.path.join(rootdir, list[i])
         if os.path.isdir(path):
-            _ext = _ext.union(list_all_ext(path))
+            _ext = _ext.union(get_all_ext(path))
         if os.path.isfile(path):
             _ext.add(os.path.splitext(path)[-1])
     return _ext
 
 
-if __name__ == "__main__":
-    # dir = '.'
-    dir = "../../"
-    exts = list_all_ext(dir)
-    print("后缀总数：{}，类型：{}".format(len(exts), exts))
-    files = list_all_files(dir, (".py",))
-    print("文件总数：{}".format(len(files)))
-    for f in files:
-        print(os.path.basename(f))  # 打印文件名
-    if len(files) > 0:
-        f = files[0]
-        assert os.path.exists(f)
-        assert os.path.isfile(f)
-        print(
-            "\n当前分析文件文件:{}".format(f)
-        )  # ../../knowledgebao.github.io/_posts\2019-06-28-待整理列表.md
-        print("文件目录", os.path.dirname(f))  # ../../knowledgebao.github.io/_posts
-        print("文件名称(含后缀)", os.path.basename(f))  # 2019-06-28-待整理列表.md
-        print(
-            "文件名称(不含后缀)", os.path.splitext(os.path.basename(f))[0]
-        )  # 2019-06-28-待整理列表
-        print(
-            "目录文件名+后缀", os.path.splitext(f)
-        )  # ('../../knowledgebao.github.io/_posts\\2019-06-28-待整理列表', '.md')
-        print(
-            "后缀(带.)", os.path.splitext(f)[-1]
-        )  # .md 如果文件名只包含后缀，比如.gitignore,gradlew文件，它的后缀是空''
+# 删除指定名称文件
+def del_assign_file(dir, filename):
+    abs_filenames = get_all_files(dir)
+    for abs_filename in abs_filenames:
+        if os.path.basename(abs_filename) == filename:
+            os.remove(abs_filename)
+
+
+# 删除空目录
+def del_empty_dir(root_dir):
+    abs_dirs = get_all_dirs(root_dir)
+    for dir in abs_dirs[::-1]:
+        if len(os.listdir(dir)) == 0:
+            os.rmdir(dir)
+
+
+# 对目录下的文件重命名
+def rename_dir_files(root_dir):
+    abs_dirs = get_all_dirs(root_dir)
+    for abs_dir in abs_dirs:
+        names = os.listdir(abs_dir)
+        index = 1
+        for name in names:
+            abs_name = os.path.join(abs_dir, name)
+            if os.path.isfile(abs_name) and name[0] != ".":
+                ext = os.path.splitext(abs_name)[-1]
+                os.rename(abs_name, os.path.join(abs_dir, f"{index}{ext}"))
+                index += 1
